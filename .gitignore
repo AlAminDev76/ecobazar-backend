@@ -1,0 +1,24 @@
+# Dependency directory (crucial: installed via 'npm install')
+node_modules/
+
+# Environment variables (contains secrets like API keys)
+.env
+.env.test
+.env.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+
+# Build outputs and temporary files
+dist/
+build/
+.cache/
+.npm/
+
+# OS/Editor specific files
+.DS_Store
+.vscode/
+.idea/
