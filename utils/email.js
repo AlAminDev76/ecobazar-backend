@@ -9,7 +9,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-let mailVerification = async(token)=>{
+let mailVerification = async(token , email)=>{
     try {
   const info = await transporter.sendMail({
     from: 'alaminkhandj8899@gmail.com', // sender address
