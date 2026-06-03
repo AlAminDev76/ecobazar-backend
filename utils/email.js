@@ -26,4 +26,20 @@ let mailVerification = async(token , email)=>{
   console.error("Error while sending mail:", err);
 }
 }
-module.exports = {mailVerification }
+let resetPasswordMail= async (token, email) => {
+  try {
+    const info = await transporter.sendMail({
+      from: 'alaminkhandj8899@gmail.com',
+      to: email,
+      subject: "Reset Your Password",
+
+      html: `
+      <body style=margin:0;padding:0;background-color:#f4f4f4;font-family:Arial,sans-serif><table cellpadding=0 cellspacing=0 style="padding:40px 0"width=100%><tr><td align=center><table cellpadding=0 cellspacing=0 style=background:#fff;border-radius:10px;overflow:hidden width=600><tr><td align=center style=background:#16a34a;padding:30px><h1 style=color:#fff;margin:0>EcoBazar</h1><tr><td style="padding:40px 30px;color:#333"><h2 style=margin-top:0>Reset Your Password</h2><p style=font-size:16px;line-height:1.7>Hello User,<p style=font-size:16px;line-height:1.7>We received a request to reset your EcoBazar account password.<p style=font-size:16px;line-height:1.7>Click the button below to create a new password.<table cellpadding=0 cellspacing=0 style="margin:30px auto"align=center><tr><td align=center style=border-radius:6px bgcolor=#16a34a><a href=http://localhost:5173/resetpassword/${token} style="display:inline-block;padding:14px 30px;color:#fff;text-decoration:none;font-size:16px;font-weight:700"target=_blank>Reset Password</a></table><p style=font-size:14px;color:#666;line-height:1.6>If the button doesn't work, copy and paste the link below into your browser:<p style=word-break:break-all;font-size:14px;color:#16a34a>http://localhost:5173/resetpassword/${token}<p style=font-size:14px;color:#666;margin-top:30px>If you did not request a password reset, you can safely ignore this email.<tr><td align=center style=background:#f0fdf4;padding:20px;color:#666;font-size:13px>© 2026 EcoBazar. All rights reserved.</table></table>`
+    });
+
+    console.log("Message sent: %s", info.messageId);
+  } catch (err) {
+    console.error("Error while sending mail:", err);
+  }
+};
+module.exports = {mailVerification,resetPasswordMail }

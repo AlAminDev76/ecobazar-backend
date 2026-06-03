@@ -1,7 +1,16 @@
-let emptyFieldValidation = (... fields)=>{
-   if (fields.includes('') || fields.includes(undefined)){
-      return res.send({message: "please fill all the field"})
-   }
-  }
 
-module.exports = {emptyFieldValidation}
+let emptyFieldValidation = (res, ...fields) => {
+
+    if (fields.includes('') || fields.includes(undefined)) {
+
+        res.send({
+            message: "Please fill all the fields"
+        })
+
+        return true
+    }
+
+    return false
+}
+
+module.exports = { emptyFieldValidation }

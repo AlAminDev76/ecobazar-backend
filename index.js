@@ -3,18 +3,24 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 const bdConfig = require("./config/dbConfig")
-const {registrationController}=require('./controllers/authenticationController')
+const { registrationController,loginController ,forgotPasswordController ,resetPasswordController ,resetVerificationMailController ,verifyEmailController } = require('./controllers/authenticationController')
 
-//middleware
+
 app.use(express.json())
-app.use (cors())
+app.use(cors())
 
-//database Config
+
 bdConfig()
 
-app.post('/registration',registrationController)
+app.post('/registration', registrationController)
+app.post('/login', loginController)
+app.post('/forgotPassword', forgotPasswordController)
+app.post('/resetPassword', resetPasswordController)
+app.post('/resetVerificationMail/:token', resetVerificationMailController)
+app.post ('/verifyEmail/:token',verifyEmailController)
 
 let port = process.env.PORT || 5000
-app.listen(5000,()=>{
+
+app.listen(port, () => {
     console.log(`server running on port ${port}`)
 })
