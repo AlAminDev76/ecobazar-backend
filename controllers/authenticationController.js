@@ -4,17 +4,18 @@ const  {emptyFieldValidation}  = require("../utils/validation")
 const tokenGenerator = require("../utils/tokenGenerator")
 const existingData = require("../utils/existingData")
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
 //registration
 let registrationController = async(req,res)=>{
   const {email,password,confirmPassword,terms}=req.body
   
 
- let users = await existingData(res,{ email })
+ let users = await existingData(res, { email })
 
-if(users){
-   return res.send({
-      message:"User not found"
-   })
+if (users) {
+    return res.send({
+        message: "User exists"
+    })
 }
 
   if (!terms) {
@@ -48,9 +49,9 @@ let loginController  = async(req,res)=>{
  const {email,password}=req.body
   
 
- let users = await existingData(res,{ email })
+ let users = await User.findOne({email:email})
 
-if(users){
+if(!users){
    return res.send({
       message:"user already exists"
    })

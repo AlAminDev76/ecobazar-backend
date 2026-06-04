@@ -1,14 +1,13 @@
 const User = require('../models/userModel')
 
-let existingData = async (res,findData)=>{
+let existingData = async (res, findData) => {
     let existingUser = await User.findOne(findData)
-
-    if(existingData){
+   
+    if (existingUser) {
         return true
-    }else{
+    } else {
         return false
     }
-    
 }
 
 module.exports = existingData
