@@ -1,10 +1,11 @@
-const {mailVerification } = require("../utils/email")
+const {mailVerification,resetPasswordMail } = require("../utils/email")
 const User = require('../models/userModel')
 const  {emptyFieldValidation}  = require("../utils/validation")
 const tokenGenerator = require("../utils/tokenGenerator")
 const existingData = require("../utils/existingData")
 const jwt = require('jsonwebtoken')
 const bcrypt = require('bcrypt')
+
 //registration
 let registrationController = async(req,res)=>{
   const {email,password,confirmPassword,terms}=req.body
@@ -68,8 +69,9 @@ res.send({massage:"Login successfully"})
 //forgotPassword
 let forgotPasswordController  = async(req,res)=>{
    let {email}=req.body
-   emptyFieldValidation(res, email, password)
-   let users = await existingData(res,{email})
+   emptyFieldValidation(res, email)
+
+  let users = await User.findOne({email:email})
 
    if (!users){
       return res.send({
@@ -93,16 +95,16 @@ let resetPasswordController  = (req,res)=>{
          massage:"confirmPassword not matched"
       })
    }
-   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded) {
+   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,  async function (err, decoded) {
            if(err){
               req.send({message : "unauthorized"})
            }
-           else{}{
+           else{
                const hash = bcrypt.hashSync(newPassWord,10)
-               const updateData = user.findByIdAndUpdate({
-                  _id: decoded.id},{password:newPassWord})
+               const updateData = await User.findByIdAndUpdate({
+                  _id: decoded.id},{password:hash},{new:true})
                   res.send({
-                     massage: "password Updated"
+                     massage: "password Updated", updateData
                   })
            }
    });
