@@ -15,12 +15,16 @@ let registrationController = async(req,res)=>{
 
 if (users) {
     return res.send({
-        message: "User exists"
+        success: false,
+        message: "An account with this email already exists."
     })
 }
 
   if (!terms) {
-    return res.send({ message: "Please accept our terms and conditions" });
+    return res.send({
+       success: false,
+       message: "You must accept the Terms and Conditions to continue."
+     });
 }
 
 if(emptyFieldValidation(res, email, password, confirmPassword)){
@@ -28,7 +32,10 @@ if(emptyFieldValidation(res, email, password, confirmPassword)){
 }
  
   if (password !== confirmPassword){
-    return res.send({message:"password not matched"})
+    return res.send({
+      success: false,
+      message: "Password and Confirm Password do not match."
+    })
   }
   const hash = bcrypt.hashSync(password, 10);
 
@@ -43,7 +50,10 @@ let token = tokenGenerator({id: user._id,
     email:user.email},process.env.ACCESS_TOKEN_SECRET,"1d")
 mailVerification (token,email)
   
- return res.send({message:"registration successful"})
+ return res.send({
+    success: true,
+    message: "Registration completed successfully. Please verify your email."
+ })
 }
 //login
 let loginController  = async(req,res)=>{
@@ -54,7 +64,8 @@ let loginController  = async(req,res)=>{
 
 if(!users){
    return res.send({
-      message:"user already exists"
+       success: false,
+       message: "No account found with this email address."
    })
 }
 emptyFieldValidation(res, email, password)
@@ -62,9 +73,14 @@ emptyFieldValidation(res, email, password)
 let pass = bcrypt.compareSync(password, users.password);
 
 if (!pass){
-     return res.send({massage:"invalid Credential"})
+     return res.send({
+      success: false,
+    message: "Invalid email or password."
+     })
 }
-res.send({massage:"Login successfully"})
+res.send({ 
+   success: true,
+   message: "Login successful."})
 }
 //forgotPassword
 let forgotPasswordController  = async(req,res)=>{
@@ -75,7 +91,8 @@ let forgotPasswordController  = async(req,res)=>{
 
    if (!users){
       return res.send({
-         massage: "User Already exists"
+          success: false,
+          message: "No account found with this email address."
       })
    }
    let token = tokenGenerator({id: users._id,
@@ -83,6 +100,7 @@ let forgotPasswordController  = async(req,res)=>{
 
      resetPasswordMail (token,email)
      res.send({
+       success: true,
       massage: "Please check your email"
      })     
 }
@@ -92,19 +110,24 @@ let resetPasswordController  = (req,res)=>{
    let {token}=req.params
    if(newPassWord != confirmPassword){
       return res.send({
-         massage:"confirmPassword not matched"
+        success: false,
+        message: "New password and Confirm Password do not match."
       })
    }
    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,  async function (err, decoded) {
            if(err){
-              req.send({message : "unauthorized"})
+              req.send({
+               success: false,
+               message: "Unauthorized access."
+              })
            }
            else{
                const hash = bcrypt.hashSync(newPassWord,10)
                const updateData = await User.findByIdAndUpdate({
                   _id: decoded.id},{password:hash},{new:true})
                   res.send({
-                     massage: "password Updated", updateData
+                     success: true,
+                     message: "Password has been updated successfully.", updateData
                   })
            }
    });
@@ -119,7 +142,8 @@ let resetVerificationMailController  = async(req,res)=>{
      mailVerification (token,email)
 
      res.send({
-      massage: "Reset password email sent successfully"
+     success: true,
+    message: "Verification email has been sent successfully."
      })
 }
 // verify Email
@@ -127,18 +151,24 @@ let verifyEmailController = async(req,res)=>{
    let {token}= req.params
    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async function(err, decoded) {
         if(err){
-           req.send({message : "unauthorized"})
+           req.send({
+            success: false,
+            message : "unauthorized"})
         }
         else{
           const userId = decoded.id
           let findUser = await User.findById(userId)
           if(findUser.isVerified){
-            return res.send({massage:"User Already Verified"})
+            return res.send({
+               success: false,
+               message: "This email address has already been verified."
+            })
           }else{
             findUser.isVerified = true
-            findUser.save()
+         await findUser.save()
              res.send({
-               massage: "Email Verified successfully"
+                success: true,
+                message: "Email verified successfully."
             })
 
           }
