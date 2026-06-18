@@ -56,8 +56,14 @@ const productSchema = new Schema(
 
     images: [
       {
+       URL:{
         type: String,
-      },
+        isMain:{
+          type: Boolean,
+          default: false
+        }
+       }
+      }
     ],
 
     ratings: {
@@ -65,10 +71,6 @@ const productSchema = new Schema(
       default: 0,
     },
 
-    totalReviews: {
-      type: Number,
-      default: 0,
-    },
 
     isFeatured: {
       type: Boolean,
@@ -81,7 +83,7 @@ const productSchema = new Schema(
     status: {
       type: String,
       enum: ["pending","active", "inactive"],
-      default: "active",
+      default: "pending",
     },
   },
   {
