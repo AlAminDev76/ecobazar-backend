@@ -2,8 +2,10 @@ require("dotenv").config();
 const express = require("express");
 const app = express();
 const cors = require("cors");
+const multer = require("multer");
 
 const bdConfig = require("./config/dbConfig");
+
 
 // Controllers
 const {
@@ -22,11 +24,30 @@ const {
   UpdateUserController
 } = require("./controllers/userController");
 
-const {createProductController} = require("./controllers/productController")
+const {
+  getProductController,
+  createProductController,
+  getSingleProductController,
+  DeleteProductController,
+  updateProductController,
+} = require("./controllers/productController");
 
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, './upload/products');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + "-" +  file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
 // Swagger
 const swaggerUi = require("swagger-ui-express");
 const swaggerJsDoc = require("swagger-jsdoc");
+const { default: axios } = require("axios");
 
 // Middlewares
 app.use(express.json());
@@ -152,7 +173,11 @@ app.post("/resetVerificationMail", resetVerificationMailController);
 app.get("/verifyEmail/:token", verifyEmailController);
 
 //product create
-app.post('/createProduct',createProductController)
+app.post('/createProduct', upload.array('photos', 12), createProductController)
+app.get("/allProduct", getProductController);
+app.get("/singleProduct/:id", getSingleProductController);
+app.delete("/deleteProduct/:id", DeleteProductController);
+app.post("/updateProduct/:id",upload.array('photos', 12), updateProductController);
 
 /* ========================
    USER ROUTES
@@ -200,6 +225,27 @@ app.delete("/deleteuser/:id", deleteUserController);
  *     tags: [Users]
  */
 app.put("/updateuser/:id", UpdateUserController);
+
+//payment
+app.post("/payment", async function (req, res) {
+  let data = await axios.post(
+    "https://sandbox.aamarpay.com/jsonpost.php",
+    {
+      store_id: "aamarpaytest",
+      signature_key: "dbb74894e82415a2f7ff0ec3a97e4183",
+      ...req.body,
+      tran_id: Date.now(),
+      currency: "BDT",
+      success_url: "https://example.com/success.php",
+      fail_url: "https://example.com/fail.php",
+      cancel_url: "https://example.com/cancel.php",
+      desc: "Lend Money",
+      type: "json",
+    }
+  );
+
+  res.send(data.data);
+});
 
 /* ========================
    START SERVER

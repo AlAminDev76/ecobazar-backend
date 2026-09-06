@@ -14,7 +14,7 @@ const createProductController = async (req,res)=>{
     }
     const sku = `${Data.now()}-${Data.gelFullYear()}`
 
-    let users = await existingData(res, { sku });
+     users = await existingData(res, { sku });
      if (users) {
       return res.json({
         success: false,
@@ -68,42 +68,57 @@ let getSingleProductController = async(req,res)=>{
     }
 }
 // delete product get 
-let DeleteProductController = async(req,res)=>{
-  try{
-    const {id}=req.params
-    const deleteProduct = await product.findByIdAndDelete(id)
-     res.json({
-        success: true,
-        message:'product delete'
-      })
-  }catch(error){
+// delete product
+let DeleteProductController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await Product.findByIdAndDelete(id);
+
     res.json({
-        success: false,
-        message:'server error'
-      })
-  }
-// update product get
-let updateProductController = async(req,res)=>{
-  try{
-     const {id}=req.params
-    const updateProduct = await product.findByIdUpdate({_id:id},req.body,{new:true})
-    res.send({
-       success: true,
-        message: "product Updated"
-    })
-  }catch(error){
+      success: true,
+      message: "Product deleted",
+    });
+  } catch (error) {
     res.json({
-        success: false,
-        message:'server error'
-      })
+      success: false,
+      message: "Server error",
+    });
   }
-}
-}
+};
+
+// update product
+let updateProductController = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const updateProduct = await Product.findByIdAndUpdate(
+     { _id:id},
+      req.body,
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Product updated",
+      updateProduct,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
 
 
 
 
 
 module.exports = {
-   createProductController
+  createProductController,
+  getProductController,
+  getSingleProductController,
+  DeleteProductController,
+  updateProductController
 }
