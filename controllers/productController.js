@@ -1,29 +1,35 @@
-const { emptyFieldValidation } = require ('../utils/validation')
-const Product = require('../models/productModel');
-const existingData = require("../utils/existingData")
+const { emptyFieldValidation } = require("../utils/validation");
+const Product = require("../models/productModel");
+const existingData = require("../utils/existingData");
 
-const createProductController = async (req,res)=>{
-    const {title,price,category} = req.body
-   emptyFieldValidation(title,price,category)
-   let users = await existingData(res, { title });
-     if (users) {
+// create product
+const createProductController = async (req, res) => {
+  try {
+    const { title, price, category } = req.body;
+
+    if (emptyFieldValidation(res, title, price, category)) return;
+
+    let existing = await existingData(res, { title });
+    if (existing) {
       return res.json({
         success: false,
         message: "Product with this title already exists",
       });
     }
-    const sku = `${Data.now()}-${Data.gelFullYear()}`
 
-     users = await existingData(res, { sku });
-     if (users) {
+    const sku = `${Date.now()}-${new Date().getFullYear()}`;
+
+    existing = await existingData(res, { sku });
+    if (existing) {
       return res.json({
         success: false,
         message: "Product with this sku already exists",
       });
     }
-  let product = new Product({
+
+    const product = new Product({
       ...req.body,
-      sku: sku
+      sku,
     });
     await product.save();
 
@@ -32,47 +38,59 @@ const createProductController = async (req,res)=>{
       message: "Product created successfully",
       product,
     });
-
-    
-
-}
-// All product get
-  let getProductController =  async (req,res)=>{
-    try{
-      let product = await Product.find({})
-      res.json({
-        success: true,
-        product
-      })
-    }catch(error){
-      res.json({
-        success: false,
-        message: 'server error'
-      })
-    }   
+  } catch (error) {
+    res.json({
+      success: false,
+      message: "Server error",
+    });
   }
-// single product get
-let getSingleProductController = async(req,res)=>{
-    try{
-      const {id}=req.params
-      const singleProduct = await product.findOne({_id:id})
-      res.json({
-        success: true,
-        product
-      })
-    }catch(error){
-      res.json({
-        success: true,
-        message: 'server error'
-      })
-    }
-}
-// delete product get 
-// delete product
-let DeleteProductController = async (req, res) => {
+};
+
+// get all products
+const getProductController = async (req, res) => {
+  try {
+    const product = await Product.find({});
+    res.json({
+      success: true,
+      product,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+// get single product
+const getSingleProductController = async (req, res) => {
   try {
     const { id } = req.params;
+    const singleProduct = await Product.findOne({ _id: id });
 
+    if (!singleProduct) {
+      return res.json({
+        success: false,
+        message: "Product not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      product: singleProduct,
+    });
+  } catch (error) {
+    res.json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+// delete product
+const DeleteProductController = async (req, res) => {
+  try {
+    const { id } = req.params;
     await Product.findByIdAndDelete(id);
 
     res.json({
@@ -88,15 +106,14 @@ let DeleteProductController = async (req, res) => {
 };
 
 // update product
-let updateProductController = async (req, res) => {
+const updateProductController = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const updateProduct = await Product.findByIdAndUpdate(
-     { _id:id},
-      req.body,
-      { new: true }
-    );
+    const updateProduct = await Product.findByIdAndUpdate(id, req.body, {
+      returnDocument: "after",
+      runValidators: true,
+    });
 
     res.json({
       success: true,
@@ -111,14 +128,10 @@ let updateProductController = async (req, res) => {
   }
 };
 
-
-
-
-
 module.exports = {
   createProductController,
   getProductController,
   getSingleProductController,
   DeleteProductController,
-  updateProductController
-}
+  updateProductController,
+};

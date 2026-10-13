@@ -1,182 +1,284 @@
-const {mailVerification,resetPasswordMail } = require("../utils/email")
-const User = require('../models/userModel')
-const  {emptyFieldValidation}  = require("../utils/validation")
-const tokenGenerator = require("../utils/tokenGenerator")
-const existingData = require("../utils/existingData")
+const User = require("../models/userModel");
+
+require("dotenv").config();
+
+const {
+    mailVerification,
+    resetPasswordMail
+} = require("../utils/email");
+
+const { emptyFieldValidation } = require("../utils/validation");
+
+const existingData = require("../utils/existingData");
+
+const tokenGenerator = require("../utils/tokenGenerator");
+
+const bcrypt = require("bcrypt");
 const jwt = require('jsonwebtoken')
-const bcrypt = require('bcrypt')
 
-//registration
-let registrationController = async(req,res)=>{
-  const {email,password,confirmPassword,terms}=req.body
-  
 
- let users = await existingData(res, { email })
 
-if (users) {
-    return res.send({
-        success: false,
-        message: "An account with this email already exists."
-    })
-}
+// ========================
+// Registration
+// ========================
 
-  if (!terms) {
-    return res.send({
-       success: false,
-       message: "You must accept the Terms and Conditions to continue."
-     });
-}
+let registrationController = async (req, res) => {
+    try {
+        const { email, password, confirmPassword, terms } = req.body;
 
-if(emptyFieldValidation(res, email, password, confirmPassword)){
-   return
-}
- 
-  if (password !== confirmPassword){
-    return res.send({
-      success: false,
-      message: "Password and Confirm Password do not match."
-    })
-  }
-  const hash = bcrypt.hashSync(password, 10);
+        // Check existing user
+        const users = await existingData(res, { email: email });
 
-  let user = new User({
-    email:email,
-    password:hash,
-    terms:terms
-  })
-  await user.save()
+        if (users) {
+            return res.status(400).send("User already exists");
+        }
 
-let token = tokenGenerator({id: user._id,
-    email:user.email},process.env.ACCESS_TOKEN_SECRET,"1d")
-mailVerification (token,email)
-  
- return res.send({
-    success: true,
-    message: "Registration completed successfully. Please verify your email."
- })
-}
-//login
-let loginController  = async(req,res)=>{
- const {email,password}=req.body
-  
+        // Terms check
+        if (!terms) {
+            return res.status(400).send({
+                success: false,
+                message: "Please accept our Terms and Conditions"
+            });
+        }
 
- let users = await User.findOne({email:email})
+        emptyFieldValidation(res, email, password, confirmPassword)
 
-if(!users){
-   return res.send({
-       success: false,
-       message: "No account found with this email address."
-   })
-}
-emptyFieldValidation(res, email, password)
+        // Password check
+        if (password !== confirmPassword) {
+            return res.status(400).json({
+                success: false,
+                message: "Password and Confirm Password do not match"
+            });
+        }
 
-let pass = bcrypt.compareSync(password, users.password);
+        // Password hashing
+        const hash = bcrypt.hashSync(password, 10);
 
-if (!pass){
-     return res.send({
-      success: false,
-    message: "Invalid email or password."
-     })
-}
-res.send({ 
-   success: true,
-   message: "Login successful."})
-}
-//forgotPassword
-let forgotPasswordController  = async(req,res)=>{
-   let {email}=req.body
-   emptyFieldValidation(res, email)
+        // Create user
+        let user = new User({
+            email: email,
+            password: hash,
+            terms: terms
+        });
 
-  let users = await User.findOne({email:email})
+        await user.save();
 
-   if (!users){
-      return res.send({
-          success: false,
-          message: "No account found with this email address."
-      })
-   }
-   let token = tokenGenerator({id: users._id,
-    email:users.email},process.env.ACCESS_TOKEN_SECRET,"1d")
+        // Generate token
+        let token = tokenGenerator(
+            {
+                id: user._id,
+                email: user.email
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            "1d"
+        );
 
-     resetPasswordMail (token,email)
-     res.send({
-       success: true,
-      massage: "Please check your email"
-     })     
-}
-//RESET PASSWORD
-let resetPasswordController  = (req,res)=>{
-   let {newPassWord,confirmPassword} = req.body
-   let {token}=req.params
-   if(newPassWord != confirmPassword){
-      return res.send({
-        success: false,
-        message: "New password and Confirm Password do not match."
-      })
-   }
-   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET,  async function (err, decoded) {
-           if(err){
-              req.send({
-               success: false,
-               message: "Unauthorized access."
-              })
-           }
-           else{
-               const hash = bcrypt.hashSync(newPassWord,10)
-               const updateData = await User.findByIdAndUpdate({
-                  _id: decoded.id},{password:hash},{new:true})
-                  res.send({
-                     success: true,
-                     message: "Password has been updated successfully.", updateData
-                  })
-           }
-   });
-}
-//reset verification email
-let resetVerificationMailController  = async(req,res)=>{
-   let {email}=req.body
-   let user = await User.findOne({email:email})
-   let token = tokenGenerator({id: users._id,
-    email:users.email},process.env.ACCESS_TOKEN_SECRET,"1d")
+        await mailVerification(token, email);
 
-     mailVerification (token,email)
+        return res.status(201).json({
+            success: true,
+            message: "Registration successful"
+        });
 
-     res.send({
-     success: true,
-    message: "Verification email has been sent successfully."
-     })
-}
-// verify Email
-let verifyEmailController = async(req,res)=>{
-   let {token}= req.params
-   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async function(err, decoded) {
-        if(err){
-           req.send({
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
             success: false,
-            message : "unauthorized"})
-        }
-        else{
-          const userId = decoded.id
-          let findUser = await User.findById(userId)
-          if(findUser.isVerified){
-            return res.send({
-               success: false,
-               message: "This email address has already been verified."
-            })
-          }else{
-            findUser.isVerified = true
-         await findUser.save()
-             res.send({
-                success: true,
-                message: "Email verified successfully."
-            })
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
 
-          }
+
+// ========================
+// Login
+// ========================
+
+let loginController = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Find user
+        let users = await existingData(res, { email: email });
+
+        if (!users) {
+            return res.status(404).send("User not found");
         }
+
+        // Empty field check
+        emptyFieldValidation(res, email, password)
+
+        // Compare password
+        let pass = bcrypt.compareSync(password, users.password);
+
+        if (!pass) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid password"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Login successfully"
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Server error",
+            error: error.message
+        });
+    }
+};
+
+
+// ========================
+// Forgot Password
+// ========================
+
+let forgotPasswordController = async (req, res) => {
+
+    let { email } = req.body
+
+    const users = await existingData(res, { email: email });
+
+    if (!users) {
+        return res.status(404).send("User not found");
+    }
+
+    // Generate token
+    let token = tokenGenerator(
+        {
+            id: users._id,
+            email: users.email
+        },
+        process.env.ACCESS_TOKEN_SECRET,
+        "1d"
+    );
+
+    await resetPasswordMail(token, email);
+
+    res.send({
+        message: "Please Check Your Email"
+    })
+}
+
+
+// ========================
+// Reset Password
+// ========================
+
+let resetPasswordController = (req, res) => {
+
+    let { newPassword, confirmPassword } = req.body
+
+    let { token } = req.params
+    //  match check
+    if (newPassword !== confirmPassword) {
+        return res.status(400).send("Password does not match");
+    }
+    // jwt
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded) {
+            if(err){
+               req.send({message : "unauthorized"})
+            }
+            else{}{
+               const hash = bcrypt.hashSync(newPassword, 10);
+            }
+      
+    });
+
+}
+// ========================
+// resetVerificationMail
+// ========================
+
+
+let resetVerificationMail = async (req, res) => {
+    try {
+        let { email } = req.body;
+
+        let user = await User.findOne({ email: email });
+
+        if (!user) {
+            return res.status(404).json({
+                message: "User not found"
+            });
+        }
+
+        // Generate token
+        let token = tokenGenerator(
+            {
+                id: user._id,
+                email: user.email
+            },
+            process.env.ACCESS_TOKEN_SECRET,
+            "1d"
+        );
+
+        // Send verification email এখানে করতে হবে
+
+        return res.status(200).json({
+            message: "Verification token generated successfully",
+            token: token
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            message: "Internal server error",
+            error: error.message
+        });
+    }
+};
+
+// ========================
+// verifyEmail
+// ========================
+
+let verifyEmailController = (req,res)=>{
+    let {token}= req.params
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, async function(err, decoded) {
+            if(err){
+               req.send({message : "unauthorized"})
+            }
+            else{
+                const userId= decoded.id
+                let findUser= await User.findById(userId) 
+                if(findUser.isVerified){
+                  return res.send({ message: "User already verified" });
+                }
+                else{
+                    findUser.isVerified = true
+                    findUser.save()
+                   return res.send({ message: "Email verified successfully" });
+                }
+
+            }
+      
+    });
   
-});
+
+    
 }
 
 
 
-module.exports = {registrationController,loginController ,forgotPasswordController ,resetPasswordController ,resetVerificationMailController ,verifyEmailController}
+
+// ========================
+// Export
+// ========================
+
+module.exports = {
+    registrationController,
+    loginController,
+    forgotPasswordController,
+    resetPasswordController,
+    resetVerificationMail,
+    verifyEmailController
+};
