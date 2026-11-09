@@ -4,24 +4,39 @@ const Product = require("../models/productModel");
 
 // create cart
 const createCart = async (req, res) => {
- 
-    const { userId, productId} = req.body;
+  const { userId, productId } = req.body;
 
-    i
+  const existingProduct = await Product.findOne({ _id: productId });
 
-    const existingProduct = await Product.findOne({_id: productId});
+  if (!existingProduct) {
+    return res.status(404).json({
+      success: false,
+      message: "Product not found",
+    });
+  }
 
-    if (!existingProduct) {
-      return res.status(404).json({
-        success: false,
-        message: "Product not found",
-      });
-    }
+  const existingProductOnCart = await Cart.findOne({
+    product: productId,
+    user: userId,
+  });
 
+  if (existingProductOnCart) {
+    existingProductOnCart.quantity += 1;
+    existingProductOnCart.totalPrice += existingProduct.price;
+
+    await existingProductOnCart.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Cart quantity updated successfully",
+      cart: existingProductOnCart,
+    });
+  } else {
     const cart = new Cart({
       user: userId,
-      products: productId,
-      quantity: quantity || 1,
+      product: productId,
+      quantity: 1,
+      totalPrice: existingProduct.price,
     });
 
     await cart.save();
@@ -31,7 +46,7 @@ const createCart = async (req, res) => {
       message: "Product added successfully",
       cart,
     });
-  
+  }
 };
 
 // increment / decrement quantity
@@ -41,7 +56,7 @@ const increDecre = async (req, res) => {
     const { type } = req.body;
 
     const product = await Cart.findById(id);
-    console.log(product)
+    
     if (!product) {
   return res.status(404).json({
     success: false,
@@ -62,7 +77,7 @@ const increDecre = async (req, res) => {
     return res.json({
       success: true,
       message: "Cart update successful",
-      cart: product,
+      cart: product
     });
   } 
 
@@ -105,11 +120,10 @@ const getCart = async (req, res) => {
 
     let totalPrice = 0;
 
-    cart.forEach((item) => {
-      if (item.products) {
-        totalPrice += item.products.price * item.quantity;
-      }
-    });
+cart.map(item => {
+  totalPrice += item.product.price * item.quantity;
+  
+});
 
     return res.json({
       success: true,

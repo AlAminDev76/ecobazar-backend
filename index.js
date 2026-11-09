@@ -65,7 +65,10 @@ const {
 
 const { findOne } = require('./models/productModel');
 
-
+const {
+  paymentController,
+  getAllOrderController
+} = require("./controllers/paymentController");
 
 // ========================
 // Middleware
@@ -165,7 +168,11 @@ app.post(
     updateProductController
 );
 
-
+//========================
+// Order management
+// ========================
+app.post("/payment",paymentController)
+app.get("/getOrders/:userId",getAllOrderController)
 
 //========================
 //Users
@@ -187,20 +194,11 @@ app.put("/updateuser/:id", UpdateUserController);
 
 app.post("/cart/create",createCart);
 
-app.post(
-    "/cart/update/:id",
-    increDecre
-);
+app.post("/cart/update/:id",increDecre);
 
-app.get(
-    "/cart/:userId",
-    getCart
-);
+app.get("/cart/:userId",getCart);
 
-app.delete(
-    "/cart/:id",
-    proDelete
-);
+app.delete("/cart/:id",proDelete);
 
 
 
